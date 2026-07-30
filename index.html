@@ -227,6 +227,21 @@ textarea{resize:none;height:56px}
     <button class="btn btn-primary" onclick="saveSport()">保存运动数据</button>
   </div>
   <div class="card">
+    <h3><span class="dot" style="background:var(--brand)"></span>🏋️ 训练动作（标准动作库）</h3>
+    <div class="frow">
+      <div><label class="fl">分类</label><select id="sCat" onchange="fillExOptions()"></select></div>
+      <div style="flex:1.4"><label class="fl">动作</label><select id="sEx"></select></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">时长 min</label><input type="number" id="sMin" placeholder="30"></div>
+      <div><label class="fl">组数(选填)</label><input type="number" id="sSets" placeholder="4"></div>
+      <div><label class="fl">次/组(选填)</label><input type="number" id="sReps" placeholder="12"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addExercise()">＋ 添加动作</button>
+    <div class="hint">消耗按「MET × 体重 × 时长」自动估算；添加<b>力量类</b>动作会自动记为当日力量训练 ✓</div>
+    <div id="exList"></div>
+  </div>
+  <div class="card">
     <h3><span class="dot" style="background:var(--red)"></span>热量收支（当日）</h3>
     <div class="grid3" id="sportStats"></div>
     <div class="hint" id="sportHint"></div>
@@ -421,6 +436,43 @@ window.DISH_DB = {
   "【蜜雪冰城】甜筒 1个":[70,150,2,24,5,0],
   "【永和】豆浆油条 1套":[280,520,13,58,26,3],
   "【永和】皮蛋瘦肉粥 1碗":[350,330,14,52,8,2]
+};
+
+/* ===== 标准动作库 =====
+ * 格式：{n:动作名, met:代谢当量, s:1=力量类(计入每周力量训练)}
+ * 消耗估算：kcal = MET × 体重kg × 时长h
+ */
+window.EXERCISE_DB = {
+  "健身房·力量": [
+    { n: "杠铃卧推", met: 5, s: 1 }, { n: "哑铃卧推/飞鸟", met: 5, s: 1 },
+    { n: "杠铃深蹲", met: 6, s: 1 }, { n: "硬拉", met: 6, s: 1 },
+    { n: "肩推(哑铃/杠铃)", met: 5, s: 1 }, { n: "引体向上/高位下拉", met: 5.5, s: 1 },
+    { n: "杠铃/哑铃划船", met: 5.5, s: 1 }, { n: "坐姿划船(器械)", met: 5, s: 1 },
+    { n: "腿举(倒蹬机)", met: 5, s: 1 }, { n: "腿屈伸/腿弯举", met: 4.5, s: 1 },
+    { n: "二头弯举", met: 4, s: 1 }, { n: "三头下压/臂屈伸", met: 4, s: 1 },
+    { n: "龙门架/绳索训练", met: 4.5, s: 1 }, { n: "史密斯机训练", met: 5, s: 1 },
+    { n: "壶铃摇摆", met: 9.5, s: 1 }, { n: "器械综合力量(循环)", met: 5.5, s: 1 }
+  ],
+  "健身房·有氧": [
+    { n: "跑步机快走(6km/h)", met: 4.5 }, { n: "跑步机慢跑(8km/h)", met: 8 },
+    { n: "跑步机跑步(10km/h)", met: 10 }, { n: "椭圆机", met: 5.5 },
+    { n: "动感单车", met: 7 }, { n: "划船机", met: 7 },
+    { n: "爬楼机", met: 9 }, { n: "游泳(中速)", met: 8 }
+  ],
+  "居家·力量": [
+    { n: "俯卧撑", met: 6, s: 1 }, { n: "自重深蹲", met: 5, s: 1 },
+    { n: "弓步蹲", met: 5, s: 1 }, { n: "平板支撑", met: 3.5, s: 1 },
+    { n: "卷腹/仰卧起坐", met: 4, s: 1 }, { n: "臀桥", met: 3.5, s: 1 },
+    { n: "哑铃训练(居家)", met: 5, s: 1 }, { n: "弹力带训练", met: 4, s: 1 },
+    { n: "引体向上(门框单杠)", met: 8, s: 1 }, { n: "自重循环训练", met: 6, s: 1 }
+  ],
+  "居家·有氧": [
+    { n: "开合跳", met: 8 }, { n: "波比跳", met: 10 },
+    { n: "跳绳(中速)", met: 11 }, { n: "HIIT高强度间歇", met: 9 },
+    { n: "跳操/帕梅拉", met: 7 }, { n: "爬楼梯", met: 8 },
+    { n: "快走(户外)", met: 4.5 }, { n: "慢跑(户外)", met: 8 },
+    { n: "骑行(中速)", met: 6.5 }, { n: "瑜伽", met: 3 }, { n: "拉伸/放松", met: 2.5 }
+  ]
 };
 
 </script>
@@ -1008,11 +1060,59 @@ function loadSportForm() {
 function saveSport() {
   var d = sDate.value;
   if (!d) return toast('请选择日期');
-  if (!+sBurn.value && sStrength.value !== '1') return toast('请填写全天消耗或勾选力量训练');
-  store.sport[d] = { burn: +sBurn.value || 0, strength: sStrength.value === '1', strengthNote: sNote.value.trim() };
+  var prev = store.sport[d] || {};
+  var items = prev.items || [];
+  if (!+sBurn.value && sStrength.value !== '1' && !items.length) return toast('请填写全天消耗、添加动作或勾选力量训练');
+  var hasStr = items.some(function (it) { return it.s; });
+  store.sport[d] = { burn: +sBurn.value || 0, strength: sStrength.value === '1' || hasStr, strengthNote: sNote.value.trim(), items: items };
   save(); toast('运动数据已保存'); renderAll();
 }
 function delSport(d) { if (confirm('删除 ' + d + ' 的运动数据？')) { delete store.sport[d]; save(); renderAll(); } }
+
+/* ---------- 标准动作库 ---------- */
+function fillExerciseCats() {
+  var cats = Object.keys(window.EXERCISE_DB || {});
+  $('sCat').innerHTML = cats.map(function (c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+  fillExOptions();
+}
+function fillExOptions() {
+  var arr = (window.EXERCISE_DB || {})[$('sCat').value] || [];
+  $('sEx').innerHTML = arr.map(function (e, i) { return '<option value="' + i + '">' + e.n + (e.s ? ' 💪' : '') + '</option>'; }).join('');
+}
+function addExercise() {
+  var d = sDate.value;
+  if (!d) return toast('请选择日期');
+  var arr = (window.EXERCISE_DB || {})[$('sCat').value] || [];
+  var e = arr[+$('sEx').value];
+  if (!e) return toast('请选择动作');
+  var min = +$('sMin').value;
+  if (!min || min <= 0) return toast('请填写时长（分钟）');
+  var w = weightOn(d) || 22 * Math.pow(store.profile.height / 100, 2);
+  var kcal = Math.round(e.met * w * min / 60);
+  var sets = +$('sSets').value || 0, reps = +$('sReps').value || 0;
+  var r = store.sport[d] || { burn: 0, strength: false, strengthNote: '', items: [] };
+  r.items = r.items || [];
+  r.items.push({ cat: $('sCat').value, n: e.n, min: min, sets: sets, reps: reps, kcal: kcal, s: e.s ? 1 : 0 });
+  if (e.s) { r.strength = true; if ($('sStrength')) sStrength.value = '1'; }
+  store.sport[d] = r;
+  save(); $('sMin').value = ''; $('sSets').value = ''; $('sReps').value = '';
+  toast('已添加：' + e.n + ' ' + min + 'min ≈ ' + kcal + ' kcal');
+  renderAll();
+}
+function delExercise(d, i) {
+  var r = store.sport[d];
+  if (!r || !r.items) return;
+  r.items.splice(i, 1);
+  if (!r.items.some(function (it) { return it.s; }) && sStrength.value !== '1') r.strength = false;
+  if (!r.items.length && !r.burn && !r.strength && !r.strengthNote) delete store.sport[d];
+  save(); renderAll();
+}
+function exSummary(items) {
+  return (items || []).map(function (it) {
+    var q = it.sets && it.reps ? it.sets + '×' + it.reps + ' ' : '';
+    return it.n + ' ' + q + it.min + 'min≈' + it.kcal + 'kcal';
+  }).join('；');
+}
 function renderSport() {
   var d = sDate.value || todayStr(), sp = store.sport[d] || {}, ik = dayIntake(d), tg = targetsFor(d);
   var burn = sp.burn || 0, gap = burn - ik.kcal;
@@ -1029,11 +1129,23 @@ function renderSport() {
   } else h = '录入当日「饮食」与「全天消耗」后自动计算收支。';
   h += '<br>💪 本周力量训练 <b>' + ws.done + ' / ' + tg.strengthPerWeek + '</b> 次' + (ws.done >= tg.strengthPerWeek ? ' <span class="tag g">已达标</span>' : '（本周起始 ' + ws.start + '）');
   $('sportHint').innerHTML = h;
+  /* 当日动作列表 */
+  var items = sp.items || [], exSum = 0;
+  items.forEach(function (it) { exSum += it.kcal || 0; });
+  $('exList').innerHTML = (items.length
+    ? '<div class="hint" style="margin-top:8px">当日动作合计 ≈ <b>' + exSum + ' kcal</b></div>' + items.map(function (it, i) {
+      return '<div class="rec"><div style="flex:1"><div class="t1">' + esc(it.n) + (it.s ? ' <span class="tag p">💪</span>' : ' <span class="tag g">🏃</span>') + '</div>' +
+        '<div class="t2">' + esc(it.cat) + ' · ' + (it.sets && it.reps ? it.sets + '组×' + it.reps + '次 · ' : '') + it.min + ' min</div></div>' +
+        '<div class="num">≈' + it.kcal + '<div class="muted" style="font-weight:400">kcal</div></div>' +
+        '<button class="del" onclick="delExercise(\'' + d + '\',' + i + ')">✕</button></div>';
+    }).join('')
+    : '');
   var dates = Object.keys(store.sport).sort().reverse().slice(0, 60);
   $('sportList').innerHTML = dates.map(function (k) {
     var r = store.sport[k], kk = dayIntake(k).kcal, gg = r.burn - kk;
+    var sub = r.items && r.items.length ? r.items.map(function (it) { return it.n + ' ' + it.min + 'min'; }).join('、') : (r.strengthNote || '');
     return '<div class="rec"><div style="flex:1"><div class="t1">' + k + (r.strength ? ' <span class="tag p">💪 力量</span>' : '') + '</div>' +
-      (r.strengthNote ? '<div class="t2">' + esc(r.strengthNote) + '</div>' : '') + '</div><div class="num">🔥 ' + (r.burn || '--') +
+      (sub ? '<div class="t2">' + esc(sub) + '</div>' : '') + '</div><div class="num">🔥 ' + (r.burn || '--') +
       '<div class="muted" style="font-weight:400">收支 ' + (kk && r.burn ? (gg > 0 ? '-' : '+') + Math.abs(Math.round(gg)) : '--') + '</div></div>' +
       '<button class="del" onclick="delSport(\'' + k + '\')">✕</button></div>';
   }).join('') || '<div class="muted" style="text-align:center;padding:14px 0">暂无记录</div>';
@@ -1078,10 +1190,10 @@ function exportExcel() {
     var b = store.body[d], bmi = calcBMI(b.weight);
     s3.push(xr([xc(d), xc(b.weight, 'n'), xc(bmi ? +bmi.toFixed(1) : null, 'n'), xc(b.water, 'n'), xc(b.note || '')]));
   });
-  var s4 = [xr(['日期', '全天消耗kcal', '摄入kcal', '热量收支', '力量训练', '训练内容'].map(function (h) { return xc(h); }))];
+  var s4 = [xr(['日期', '全天消耗kcal', '摄入kcal', '热量收支', '力量训练', '训练内容', '动作明细'].map(function (h) { return xc(h); }))];
   Object.keys(store.sport).sort().forEach(function (d) {
     var r = store.sport[d], k = dayIntake(d).kcal;
-    s4.push(xr([xc(d), xc(r.burn, 'n'), xc(k ? +k.toFixed(1) : null, 'n'), xc(k && r.burn ? Math.round(r.burn - k) : null, 'n'), xc(r.strength ? '✓' : '未进行'), xc(r.strengthNote || '')]));
+    s4.push(xr([xc(d), xc(r.burn, 'n'), xc(k ? +k.toFixed(1) : null, 'n'), xc(k && r.burn ? Math.round(r.burn - k) : null, 'n'), xc(r.strength ? '✓' : '未进行'), xc(r.strengthNote || ''), xc(exSummary(r.items))]));
   });
   var p = store.profile, tg = computeTargets();
   var s5 = [xr([xc('项目'), xc('数值')])];
@@ -1134,6 +1246,7 @@ function initForms() {
   var b = store.body[t];
   bWeight.value = b && b.weight ? b.weight : ''; bWater.value = b && b.water ? b.water : ''; bNote.value = b && b.note ? b.note : '';
   bBMI.value = b && b.weight ? fmt(calcBMI(b.weight), 1) : '';
+  fillExerciseCats();
   loadSportForm();
 }
 function renderAll() { renderHome(); renderBody(); renderDiet(); renderSport(); }
