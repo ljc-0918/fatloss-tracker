@@ -54,6 +54,12 @@ textarea{resize:none;height:56px}
 .del:active{color:var(--red)}
 .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:#eef2fd;color:var(--brand)}
 .tag.g{background:#e7f6ec;color:var(--green)}.tag.o{background:#fef3e2;color:var(--orange)}.tag.p{background:#f1ebfe;color:var(--purple)}
+.drink-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.drink-grid button{border:1px solid var(--line);background:#f7f9fc;border-radius:12px;padding:10px 9px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit}
+.drink-grid button:active{background:#eef2fd;border-color:var(--brand)}
+.drink-grid .ml{display:block;font-size:11px;color:var(--sub);font-weight:400;margin-top:2px}
+.drink-sum{margin-top:12px}
+.drink-sum .bar>i{background:#2196f3}
 #nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#fff;border-top:1px solid var(--line);display:flex;z-index:60;padding-bottom:env(safe-area-inset-bottom)}
 #nav button{flex:1;border:none;background:none;padding:9px 0 8px;font-size:11px;color:var(--sub);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
 #nav button .ic{font-size:20px;line-height:1}
@@ -137,7 +143,7 @@ textarea{resize:none;height:56px}
   <div class="card">
     <h3><span class="dot"></span>录入每日身体数据</h3>
     <div class="frow">
-      <div><label class="fl">日期</label><input type="date" id="bDate"></div>
+      <div><label class="fl">日期</label><input type="date" id="bDate" onchange="renderDrink()"></div>
       <div><label class="fl">晨起空腹体重 kg</label><input type="number" step="0.1" id="bWeight" placeholder="72.5"></div>
     </div>
     <div class="frow">
@@ -148,14 +154,21 @@ textarea{resize:none;height:56px}
       <div><label class="fl">腰围 cm（选填）</label><input type="number" step="0.1" id="bWaist" placeholder="85"></div>
       <div><label class="fl">臂围 cm（选填）</label><input type="number" step="0.1" id="bArm" placeholder="32"></div>
     </div>
-    <div class="frow">
-      <div><label class="fl">腿围 cm（选填）</label><input type="number" step="0.1" id="bThigh" placeholder="55"></div>
-      <div><label class="fl">当日饮水量 ml</label><input type="number" step="50" id="bWater" placeholder="2000"></div>
-    </div>
+    <div style="margin-bottom:8px"><label class="fl">腿围 cm（选填）</label><input type="number" step="0.1" id="bThigh" placeholder="55"></div>
     <label class="fl">备注（外出聚餐 / 身体感受等）</label>
     <textarea id="bNote" placeholder="如：晚上聚餐吃火锅；今天精神不错，睡眠 7h…"></textarea>
     <button class="btn btn-primary" style="margin-top:8px" onclick="saveBody()">保存身体数据</button>
     <div class="hint">💡 体重更新后，热量 / 蛋白质 / 饮水 / 训练目标会自动按新体重重算。体脂率与围度（腰/臂/腿）能更真实反映减脂效果——体重降但腰围也降，才是真减脂。</div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:#2196f3"></span>💧 饮品记录（按次记录 · 自动汇总）</h3>
+    <div class="hint">点一下就记一次，按上方日期累计到当天，自动算出总饮水量并计入目标。喝了一杯 300ml 水杯、一瓶 550ml 矿泉水或一杯美式，分别点对应的按钮即可。</div>
+    <div class="drink-grid" id="drinkPresets"></div>
+    <div class="frow" style="margin-top:8px">
+      <div style="flex:2"><input type="number" id="drinkCustom" placeholder="自定义容量 ml（如 420）"></div>
+      <div><button class="btn btn-ghost" onclick="addCustomDrink()">＋ 添加</button></div>
+    </div>
+    <div class="drink-sum" id="drinkToday"></div>
   </div>
   <div class="card">
     <h3><span class="dot" style="background:var(--teal)"></span>身体指标变化曲线</h3>
@@ -595,7 +608,7 @@ function load() {
   try { s = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { s = {}; }
   s.profile = Object.assign(defaultProfile(), s.profile || {});
   s.body = s.body || {}; s.diet = s.diet || {}; s.sport = s.sport || {};
-  s.checkin = s.checkin || {}; s.myFoods = s.myFoods || {};
+  s.checkin = s.checkin || {}; s.myFoods = s.myFoods || {}; s.drinks = s.drinks || {};
   s.templates = s.templates || []; s.sync = s.sync || {}; s.reminder = s.reminder || { on: false, times: ['10:00', '15:00', '20:00'] };
   // 合并 AI 代录种子数据（本地已有该日期时以本地为准）
   var seed = window.FATLOSS_SEED || {};
@@ -606,6 +619,36 @@ function load() {
   return s;
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(store)); }
+
+/* ---------- 饮品按次记录 & 自动汇总 ---------- */
+var DRINK_PRESETS = [
+  { icon: '💧', label: '水杯 300ml', ml: 300, kind: '白水' },
+  { icon: '💧', label: '矿泉水 550ml', ml: 550, kind: '白水' },
+  { icon: '💧', label: '小瓶水 330ml', ml: 330, kind: '白水' },
+  { icon: '☕', label: '美式·中杯', ml: 355, kind: '咖啡' },
+  { icon: '☕', label: '美式·大杯', ml: 473, kind: '咖啡' },
+  { icon: '🥛', label: '牛奶 250ml', ml: 250, kind: '奶' }
+];
+function dayWater(d) {
+  var arr = store.drinks[d] || [], s = 0;
+  for (var i = 0; i < arr.length; i++) s += arr[i].ml || 0;
+  return s;
+}
+function addDrink(d, label, ml) {
+  if (!d) return;
+  store.drinks[d] = store.drinks[d] || [];
+  store.drinks[d].push({ label: label, ml: ml, ts: Date.now() });
+  store.body[d] = store.body[d] || {};
+  store.body[d].water = dayWater(d);
+  save(); renderAll();
+}
+function delDrink(d, idx) {
+  if (!store.drinks[d]) return;
+  store.drinks[d].splice(idx, 1);
+  if (!store.drinks[d].length) delete store.drinks[d];
+  if (store.body[d]) store.body[d].water = store.drinks[d] ? dayWater(d) : null;
+  save(); renderAll();
+}
 
 /* ---------- 日期工具 ---------- */
 function dstr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -1030,17 +1073,45 @@ function renderCal() {
 
 /* ================= 身体数据 ================= */
 function saveBody() {
-  var d = bDate.value, w = +bWeight.value, water = +bWater.value;
+  var d = bDate.value, w = +bWeight.value;
   var fat = +bFat.value, waist = +bWaist.value, arm = +bArm.value, thigh = +bThigh.value;
   if (!d) return toast('请选择日期');
-  if (!w && !water && !fat && !waist && !arm && !thigh && !bNote.value.trim()) return toast('请至少填写一项');
-  store.body[d] = {
-    weight: w || null, water: water || null, fat: fat || null, waist: waist || null,
-    arm: arm || null, thigh: thigh || null, note: bNote.value.trim()
-  };
+  if (!w && !fat && !waist && !arm && !thigh && !bNote.value.trim() && dayWater(d) === 0) return toast('请至少填写一项');
+  store.body[d] = store.body[d] || {};
+  if (w) store.body[d].weight = w; else delete store.body[d].weight;
+  store.body[d].fat = fat || null; store.body[d].waist = waist || null;
+  store.body[d].arm = arm || null; store.body[d].thigh = thigh || null;
+  store.body[d].note = bNote.value.trim();
+  store.body[d].water = dayWater(d);
   save(); toast('已保存 · 目标已按新体重更新'); renderAll();
 }
 function delBody(d) { if (confirm('删除 ' + d + ' 的身体数据？')) { delete store.body[d]; save(); renderAll(); } }
+
+/* ---- 饮品按次记录 UI ---- */
+function addCustomDrink() {
+  var v = +drinkCustom.value; if (!v || v <= 0) return toast('请输入容量');
+  addDrink(bDate.value, '自定义 ' + v + 'ml', v); drinkCustom.value = ''; toast('已记录 +' + v + 'ml');
+}
+function renderDrink() {
+  var d = bDate.value || todayStr();
+  $('drinkPresets').innerHTML = DRINK_PRESETS.map(function (p) {
+    return '<button onclick="addDrink(bDate.value,\'' + p.label + '\',' + p.ml + ')">' + p.icon + ' ' + p.label + '<span class="ml">' + p.ml + ' ml · ' + p.kind + '</span></button>';
+  }).join('');
+  var arr = store.drinks[d] || [], total = dayWater(d), tg = targetsFor(d), goal = tg.waterToday || 2000;
+  var pct = goal ? Math.min(100, Math.round(total / goal * 100)) : 0;
+  var html = '<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="t1">今日饮水（' + d + '）</div><div class="num">' + total + ' / ' + goal + ' ml</div></div>';
+  html += '<div class="bar"><i style="width:' + pct + '%;background:' + (pct >= 100 ? 'var(--green)' : '#2196f3') + '"></i></div>';
+  html += '<div class="muted" style="margin-top:3px">' + (pct >= 100 ? '✅ 已达标' : '还差 ' + Math.max(0, goal - total) + ' ml 达标') + '</div>';
+  if (arr.length) {
+    html += arr.map(function (it, i) {
+      var tm = new Date(it.ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+      return '<div class="rec"><div style="flex:1"><div class="t1">' + it.label + '</div><div class="muted">' + tm + '</div></div><div class="num">' + it.ml + ' ml</div><button class="del" onclick="delDrink(\'' + d + '\',' + i + ')">✕</button></div>';
+    }).join('');
+  } else {
+    html += '<div class="muted" style="text-align:center;padding:10px 0">还没有记录，点上面的按钮记一次吧</div>';
+  }
+  $('drinkToday').innerHTML = html;
+}
 var chartRange = 7, chartMetric = 'weight';
 function setChartRange(n) {
   chartRange = n;
@@ -1403,10 +1474,10 @@ function exportExcel() {
       s2.push(xr([xc(d), xc(f.meal), xc(f.name), xc(f.grams, 'n'), xc(f.kcal, 'n'), xc(f.protein, 'n'), xc(f.carb, 'n'), xc(f.fat, 'n'), xc(f.fiber, 'n'), xc(f.est ? '估算' : '')]));
     });
   });
-  var s3 = [xr(['日期', '体重kg', 'BMI', '体脂%', '腰围cm', '臂围cm', '腿围cm', '饮水ml', '备注'].map(function (h) { return xc(h); }))];
+  var s3 = [xr(['日期', '体重kg', 'BMI', '体脂%', '腰围cm', '臂围cm', '腿围cm', '饮水ml', '饮品明细', '备注'].map(function (h) { return xc(h); }))];
   Object.keys(store.body).sort().forEach(function (d) {
     var b = store.body[d], bmi = calcBMI(b.weight);
-    s3.push(xr([xc(d), xc(b.weight, 'n'), xc(bmi ? +bmi.toFixed(1) : null, 'n'), xc(b.fat, 'n'), xc(b.waist, 'n'), xc(b.arm, 'n'), xc(b.thigh, 'n'), xc(b.water, 'n'), xc(b.note || '')]));
+    s3.push(xr([xc(d), xc(b.weight, 'n'), xc(bmi ? +bmi.toFixed(1) : null, 'n'), xc(b.fat, 'n'), xc(b.waist, 'n'), xc(b.arm, 'n'), xc(b.thigh, 'n'), xc(b.water, 'n'), xc((store.drinks[d] || []).map(function (x) { return x.label; }).join('、') || ''), xc(b.note || '')]));
   });
   var s4 = [xr(['日期', '全天消耗kcal', '摄入kcal', '热量收支', '力量训练', '训练内容', '动作明细'].map(function (h) { return xc(h); }))];
   Object.keys(store.sport).sort().forEach(function (d) {
@@ -1586,11 +1657,12 @@ function initForms() {
   var t = todayStr();
   bDate.value = dDate.value = sDate.value = t;
   var b = store.body[t];
-  bWeight.value = b && b.weight ? b.weight : ''; bWater.value = b && b.water ? b.water : '';
+  bWeight.value = b && b.weight ? b.weight : '';
   bFat.value = b && b.fat ? b.fat : ''; bWaist.value = b && b.waist ? b.waist : '';
   bArm.value = b && b.arm ? b.arm : ''; bThigh.value = b && b.thigh ? b.thigh : '';
   bNote.value = b && b.note ? b.note : '';
   bBMI.value = b && b.weight ? fmt(calcBMI(b.weight), 1) : '';
+  renderDrink();
   if ($('syncToken')) $('syncToken').value = store.sync.token || '';
   if ($('syncRepo')) $('syncRepo').value = store.sync.repo || '';
   if ($('reminderOn')) $('reminderOn').checked = !!store.reminder.on;
@@ -1598,7 +1670,7 @@ function initForms() {
   renderTemplates();
   loadSportForm();
 }
-function renderAll() { renderHome(); renderBody(); renderDiet(); renderSport(); }
+function renderAll() { renderHome(); renderBody(); renderDiet(); renderSport(); renderDrink(); }
 
 /* ================= 智能速记（语音 / 文字） ================= */
 function startVoice(targetId) {
