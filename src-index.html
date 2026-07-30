@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="减脂追踪">
+<meta name="theme-color" content="#3b6cf0">
+<title>减脂追踪工作台</title>
+<!--ICON-->
+<style>
+:root{--bg:#f2f4f8;--card:#fff;--ink:#1c2333;--sub:#7a8299;--line:#e8ebf2;--brand:#3b6cf0;--brand2:#6a8df7;
+--green:#16a34a;--red:#e5484d;--orange:#f59e0b;--teal:#0d9488;--purple:#8b5cf6;--shadow:0 6px 24px rgba(28,35,51,.07);--r:16px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:#e6e9f0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);display:flex;justify-content:center}
+#phone{width:100%;max-width:430px;min-height:100vh;background:var(--bg);position:relative;box-shadow:0 0 40px rgba(0,0,0,.12);display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:50;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:calc(12px + env(safe-area-inset-top)) 14px 11px;display:flex;align-items:center;justify-content:space-between}
+#topbar h1{font-size:16.5px;font-weight:700}
+.tool-btn{border:none;background:rgba(255,255,255,.2);color:#fff;font-size:12px;padding:6px 10px;border-radius:10px;cursor:pointer;margin-left:6px}
+.tool-btn:active{background:rgba(255,255,255,.34)}
+#main{flex:1;overflow-y:auto;padding:13px 13px 94px;-webkit-overflow-scrolling:touch}
+.page{display:none;animation:fade .25s}.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.card h3{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
+.muted{color:var(--sub);font-size:12px;font-weight:400}
+.frow{display:flex;gap:8px;margin-bottom:8px}.frow>*{flex:1;min-width:0}
+label.fl{display:block;font-size:11px;color:var(--sub);margin-bottom:3px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14px;background:#fafbfd;color:var(--ink);outline:none;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);background:#fff}
+input:disabled{color:var(--sub)}
+textarea{resize:none;height:56px}
+.btn{border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.btn-primary:active{opacity:.85}
+.btn-ghost{background:#eef2fd;color:var(--brand)}
+.btn-warn{background:#fdeeee;color:var(--red)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat{background:#f7f9fc;border-radius:12px;padding:10px 6px;text-align:center}
+.stat .v{font-size:18px;font-weight:800;line-height:1.2}
+.stat .l{font-size:10.5px;color:var(--sub);margin-top:3px;line-height:1.3}
+.pos{color:var(--green)}.neg{color:var(--red)}.warn{color:var(--orange)}
+.bar{height:8px;background:#eef1f7;border-radius:99px;overflow:hidden;margin-top:4px}
+.bar>i{display:block;height:100%;border-radius:99px;transition:width .4s}
+.rec{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--line);gap:8px}
+.rec:last-child{border-bottom:none}
+.rec .t1{font-size:13px;font-weight:600}
+.rec .t2{font-size:11px;color:var(--sub);margin-top:2px;word-break:break-all}
+.rec .num{font-size:13px;font-weight:700;text-align:right;white-space:nowrap}
+.del{border:none;background:none;color:#c3c9d6;font-size:15px;cursor:pointer;padding:2px 3px}
+.del:active{color:var(--red)}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:#eef2fd;color:var(--brand)}
+.tag.g{background:#e7f6ec;color:var(--green)}.tag.o{background:#fef3e2;color:var(--orange)}.tag.p{background:#f1ebfe;color:var(--purple)}
+.drink-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.drink-grid button{border:1px solid var(--line);background:#f7f9fc;border-radius:12px;padding:10px 9px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit}
+.drink-grid button:active{background:#eef2fd;border-color:var(--brand)}
+.drink-grid .ml{display:block;font-size:11px;color:var(--sub);font-weight:400;margin-top:2px}
+.drink-sum{margin-top:12px}
+.drink-sum .bar>i{background:#2196f3}
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#fff;border-top:1px solid var(--line);display:flex;z-index:60;padding-bottom:env(safe-area-inset-bottom)}
+#nav button{flex:1;border:none;background:none;padding:9px 0 8px;font-size:11px;color:var(--sub);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+#nav button .ic{font-size:20px;line-height:1}
+#nav button.on{color:var(--brand);font-weight:700}
+#cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+#cal .wd{font-size:10px;color:var(--sub);padding:3px 0}
+#cal .day{font-size:11px;padding:6px 0;border-radius:8px}
+#cal .day.ok{background:#e7f6ec;color:var(--green);font-weight:700}
+#cal .day.today{outline:2px solid var(--brand)}
+#cal .day.dim{color:#c9cedb}
+.seg{display:flex;background:#eef1f7;border-radius:10px;padding:3px;margin-bottom:8px}
+.seg button{flex:1;border:none;background:none;padding:6px;font-size:12px;border-radius:8px;color:var(--sub);cursor:pointer}
+.seg button.on{background:#fff;color:var(--brand);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.mask{display:none;position:fixed;inset:0;background:rgba(15,20,35,.45);z-index:80;justify-content:center;align-items:flex-end}
+.mask.show{display:flex}
+.sheet{width:100%;max-width:430px;background:#fff;border-radius:20px 20px 0 0;padding:16px 14px calc(22px + env(safe-area-inset-bottom));animation:up .25s;max-height:92vh;overflow-y:auto}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{font-size:15px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.sheet h3 .x{border:none;background:#f2f4f8;border-radius:50%;width:26px;height:26px;color:var(--sub);cursor:pointer;font-size:14px}
+.meal-head{font-size:12px;font-weight:700;color:var(--sub);margin:9px 0 1px;display:flex;justify-content:space-between}
+.toast{position:fixed;top:74px;left:50%;transform:translateX(-50%);background:rgba(28,35,51,.93);color:#fff;font-size:13px;padding:9px 18px;border-radius:99px;z-index:99;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+.hint{font-size:11px;color:var(--sub);background:#f7f9fc;border-radius:10px;padding:8px 10px;line-height:1.65;margin-top:8px}
+.checkin-big{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#16a34a,#34d399);border-radius:var(--r);padding:15px;color:#fff;margin-bottom:12px;box-shadow:var(--shadow)}
+.checkin-big.undone{background:linear-gradient(135deg,#f59e0b,#fbbf24)}
+.checkin-big .big{font-size:17px;font-weight:800}
+.checkin-big button{border:none;background:rgba(255,255,255,.26);color:#fff;font-weight:700;padding:9px 15px;border-radius:12px;font-size:13px;cursor:pointer}
+    .switch{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);padding:6px 0}
+    .switch input{width:auto}
+    .qbtn{border:1px solid var(--line);background:#f7f9fc;border-radius:12px;padding:14px 6px;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink);font-family:inherit;text-align:center}
+    .qbtn:active{background:#eef2fd;border-color:var(--brand)}
+    details{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:0 14px;margin-bottom:12px}
+    details[open]{padding-bottom:14px}
+    details>summary{font-size:14px;font-weight:700;padding:14px 0;list-style:none;display:flex;align-items:center;gap:6px;cursor:pointer}
+    details>summary::-webkit-details-marker{display:none}
+    details>summary:before{content:"▸";color:var(--brand);font-size:12px}
+    details[open]>summary:before{content:"▾"}
+    details.mini{background:#f7f9fc;box-shadow:none;border:1px solid var(--line);margin-top:10px}
+    details.mini>summary{font-size:13px;padding:10px 0;color:var(--brand)}
+</style>
+</head>
+<body>
+<div id="phone">
+<div id="topbar">
+  <h1>🔥 减脂追踪工作台</h1>
+  <div>
+    <button class="tool-btn" onclick="openProfile()">⚙️ 档案</button>
+    <button class="tool-btn" onclick="openBackup()">💾 备份</button>
+  </div>
+</div>
+<div id="main">
+
+<div class="page active" id="page-home">
+  <div class="checkin-big undone" id="checkinCard">
+    <div><div class="big" id="ckTitle">今日未打卡</div>
+      <div style="font-size:12px;opacity:.92;margin-top:3px"><span id="ckSub"></span> · <span id="streakStr"></span></div></div>
+    <button id="ckBtn" onclick="doCheckin()">✓ 打卡</button>
+  </div>
+  <div class="card">
+    <h3><span class="dot"></span>快速记录</h3>
+    <div class="grid2">
+      <button class="qbtn" onclick="go('body',null)">⚖️ 体重/喝水</button>
+      <button class="qbtn" onclick="go('diet',null)">🍱 记吃喝</button>
+      <button class="qbtn" onclick="go('sport',null)">💪 记运动</button>
+      <button class="qbtn" onclick="openReport('week')">📊 看报告</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3><span class="dot"></span>今日概览 <span class="muted" id="todayStr"></span></h3>
+    <div class="grid3">
+      <div class="stat"><div class="v" id="hWeight">--</div><div class="l">体重 kg</div></div>
+      <div class="stat"><div class="v" id="hBMI">--</div><div class="l" id="hBMIL">BMI</div></div>
+      <div class="stat"><div class="v" id="hWater">--</div><div class="l">饮水 ml</div></div>
+    </div>
+    <div class="grid3" style="margin-top:8px">
+      <div class="stat"><div class="v" id="hIn">--</div><div class="l">摄入 kcal</div></div>
+      <div class="stat"><div class="v" id="hOut">--</div><div class="l">消耗 kcal</div></div>
+      <div class="stat"><div class="v" id="hGap">--</div><div class="l">热量收支</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--teal)"></span>今日目标完成度</h3>
+    <div id="goalBars"></div>
+    <div id="tdeeInfo"></div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--purple)"></span>📊 阶段报告</h3>
+    <div class="frow">
+      <button class="btn btn-ghost" style="margin-top:0" onclick="openReport('week')">📊 本周报告</button>
+      <button class="btn btn-ghost" style="margin-top:0" onclick="openReport('month')">📈 本月报告</button>
+    </div>
+  </div>
+  <details>
+    <summary>📅 打卡日历</summary>
+    <div id="cal"></div>
+  </details>
+</div>
+
+<div class="page" id="page-body">
+  <div class="card">
+    <h3><span class="dot"></span>录入每日身体数据</h3>
+    <div class="frow">
+      <div><label class="fl">日期</label><input type="date" id="bDate" onchange="renderDrink()"></div>
+      <div><label class="fl">晨起空腹体重 kg</label><input type="number" step="0.1" id="bWeight" placeholder="72.5"></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">BMI（自动）</label><input id="bBMI" disabled placeholder="--"></div>
+      <div></div>
+    </div>
+    <details class="mini">
+      <summary>高级指标（体脂率 / 腰围 / 臂围 / 腿围，可选）</summary>
+      <div class="frow">
+        <div><label class="fl">体脂率 %（选填）</label><input type="number" step="0.1" id="bFat" placeholder="20.5"></div>
+        <div><label class="fl">腰围 cm（选填）</label><input type="number" step="0.1" id="bWaist" placeholder="85"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">臂围 cm（选填）</label><input type="number" step="0.1" id="bArm" placeholder="32"></div>
+        <div><label class="fl">腿围 cm（选填）</label><input type="number" step="0.1" id="bThigh" placeholder="55"></div>
+      </div>
+    </details>
+    <label class="fl">备注（外出聚餐 / 身体感受等）</label>
+    <textarea id="bNote" placeholder="如：晚上聚餐吃火锅；今天精神不错，睡眠 7h…"></textarea>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="saveBody()">保存身体数据</button>
+    <div class="hint">💡 体重更新后，热量 / 蛋白质 / 饮水 / 训练目标会自动按新体重重算。体脂率与围度（腰/臂/腿）能更真实反映减脂效果——体重降但腰围也降，才是真减脂。</div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:#2196f3"></span>💧 饮品记录（按次记录 · 自动汇总）</h3>
+    <div class="hint">点一下就记一次，按上方日期累计到当天，自动算出总饮水量并计入目标。喝了一杯 300ml 水杯、一瓶 550ml 矿泉水或一杯美式，分别点对应的按钮即可。</div>
+    <div class="drink-grid" id="drinkPresets"></div>
+    <div class="frow" style="margin-top:8px">
+      <div style="flex:2"><input type="number" id="drinkCustom" placeholder="自定义容量 ml（如 420）"></div>
+      <div><button class="btn btn-ghost" onclick="addCustomDrink()">＋ 添加</button></div>
+    </div>
+    <div class="drink-sum" id="drinkToday"></div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--teal)"></span>身体指标变化曲线</h3>
+    <div class="seg">
+      <button class="on" id="segMWeight" onclick="setChartMetric('weight')">体重</button>
+      <button id="segMFat" onclick="setChartMetric('fat')">体脂率</button>
+      <button id="segMWaist" onclick="setChartMetric('waist')">腰围</button>
+    </div>
+    <div class="seg">
+      <button class="on" id="seg7" onclick="setChartRange(7)">近一周</button>
+      <button id="seg30" onclick="setChartRange(30)">近一月</button>
+      <button id="seg90" onclick="setChartRange(90)">近三月</button>
+    </div>
+    <div id="chartBox"></div>
+  </div>
+  <div class="card"><h3><span class="dot" style="background:var(--purple)"></span>历史记录</h3><div id="bodyList"></div></div>
+</div>
+
+<div class="page" id="page-diet">
+  <div class="card">
+    <h3><span class="dot" style="background:var(--brand)"></span>🚀 一句话速记（语音 / 文字）</h3>
+    <textarea id="quickInput" placeholder="例如：中午沙县鸡腿饭；晚上半根玉米；加餐一杯无糖酸奶"></textarea>
+    <div class="frow" style="margin-top:8px">
+      <div><button class="btn btn-ghost" id="micBtn" onclick="startVoice()">🎤 语音</button></div>
+      <div style="flex:2"><button class="btn btn-primary" onclick="parseQuick()">⚡ 智能解析并添加</button></div>
+    </div>
+    <div class="hint">支持：日期(今天/昨天/前天/具体日期)、餐次(早/午/晚/加)、份数(两份/200克)。外食自动匹配餐厅菜品库，食材按名称带出营养。iPhone 语音可能不可用，直接打字即可。</div>
+    <div id="quickPreview"></div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--red)"></span>🔥 今日热量预算</h3>
+    <div id="kcalRing" style="display:flex;align-items:center;gap:16px"></div>
+    <div class="hint" id="kcalRingHint"></div>
+  </div>
+  <details>
+    <summary>🍽 手动录入饮食（速记识别不了时用）</summary>
+    <div class="frow">
+      <div><label class="fl">日期</label><input type="date" id="dDate" onchange="renderDiet()"></div>
+      <div><label class="fl">餐次</label><select id="dMeal"><option>早餐</option><option>午餐</option><option>晚餐</option><option>加餐</option></select></div>
+    </div>
+    <div class="seg">
+      <button class="on" id="modeFood" onclick="switchMode('food')">🥗 按食材称重</button>
+      <button id="modeDish" onclick="switchMode('dish')">🍜 外出就餐估算</button>
+    </div>
+    <div id="boxFood">
+      <div class="frow">
+        <div style="flex:2"><label class="fl">食物名称（输入即自动匹配营养）</label>
+          <input id="dName" list="foodList" placeholder="鸡胸肉 / 米饭…" oninput="autoFill()"><datalist id="foodList"></datalist></div>
+        <div><label class="fl">重量 g</label><input type="number" id="dGrams" placeholder="100" oninput="autoFill()"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">热量 kcal</label><input type="number" step="0.1" id="dKcal"></div>
+        <div><label class="fl">蛋白质 g</label><input type="number" step="0.1" id="dPro"></div>
+        <div><label class="fl">碳水 g</label><input type="number" step="0.1" id="dCarb"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">脂肪 g</label><input type="number" step="0.1" id="dFat"></div>
+        <div><label class="fl">纤维 g</label><input type="number" step="0.1" id="dFiber"></div>
+      </div>
+      <div class="frow">
+        <div><button class="btn btn-primary" onclick="addFood()">＋ 添加</button></div>
+        <div><button class="btn btn-ghost" onclick="saveMyFood()">⭐ 存为常用</button></div>
+      </div>
+    </div>
+    <div id="boxDish" style="display:none">
+      <div class="frow">
+        <div style="flex:2"><label class="fl">选择菜品（按常规均值估算）</label><select id="dishSel"></select></div>
+        <div><label class="fl">份数</label><input type="number" step="0.5" id="dishQty" value="1"></div>
+      </div>
+      <button class="btn btn-primary" onclick="addDish()">＋ 按估算添加</button>
+      <div class="hint">🍽 外食场景专用：60+ 常见餐厅菜品/饮品，选菜品和份数即可，营养按常规做法均值估算，记录标注「估算」。</div>
+    </div>
+    <button class="btn btn-ghost btn-mini" style="margin-top:8px;padding:8px" onclick="copyYesterday()">📋 一键复制前一天饮食</button>
+  </details>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--red)"></span>当日营养汇总</h3>
+    <div class="grid2" id="dietStats"></div>
+    <div id="dietBars" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><h3><span class="dot" style="background:var(--purple)"></span>当日饮食明细</h3><div id="dietList"></div></div>
+</div>
+
+<div class="page" id="page-sport">
+  <div class="card">
+    <h3><span class="dot" style="background:var(--brand)"></span>🚀 一句话速记运动（语音 / 文字）</h3>
+    <textarea id="exQuickInput" placeholder="例如：今天卧推40分钟 跑步20分钟 死虫式3组；昨天深蹲30分钟"></textarea>
+    <div class="frow" style="margin-top:8px">
+      <div><button class="btn btn-ghost" onclick="startVoice('exQuickInput')">🎤 语音</button></div>
+      <div style="flex:2"><button class="btn btn-primary" onclick="parseExercise()">⚡ 智能解析并添加</button></div>
+    </div>
+    <div class="hint">支持：日期(今天/昨天/前天/具体日期)、动作名、时长(40分钟)、组数(3组/4×12)。消耗按当日体重×MET 自动算。iPhone 语音可能不可用，直接打字即可。</div>
+  </div>
+  <details>
+    <summary>🏃 录入运动消耗（手动）</summary>
+    <div class="frow">
+      <div><label class="fl">日期</label><input type="date" id="sDate" onchange="loadSportForm()"></div>
+      <div><label class="fl">Apple Watch 全天总消耗 kcal</label><input type="number" id="sBurn" placeholder="2400"></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">力量训练</label><select id="sStrength"><option value="0">未进行</option><option value="1">已完成 ✓</option></select></div>
+      <div style="flex:2"><label class="fl">训练内容（可选）</label><input id="sNote" placeholder="胸+三头 45min"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveSport()">保存运动数据</button>
+  </details>
+  <details>
+    <summary>🏋️ 训练动作库（标准动作）</summary>
+    <div class="frow">
+      <div><label class="fl">分类</label><select id="sCat" onchange="fillExOptions()"></select></div>
+      <div style="flex:1.4"><label class="fl">动作</label><select id="sEx"></select></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">时长 min</label><input type="number" id="sMin" placeholder="30"></div>
+      <div><label class="fl">组数(选填)</label><input type="number" id="sSets" placeholder="4"></div>
+      <div><label class="fl">次/组(选填)</label><input type="number" id="sReps" placeholder="12"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addExercise()">＋ 添加动作</button>
+    <div class="hint">消耗按「MET × 体重 × 时长」自动估算；添加<b>力量类</b>动作会自动记为当日力量训练 ✓</div>
+    <div id="exList"></div>
+  </details>
+  <details>
+    <summary>📋 训练计划模板（一键套用）</summary>
+    <div class="frow">
+      <div style="flex:2"><label class="fl">把当天动作存为模板</label><input id="tplName" placeholder="如：居家全身A / 推日"></div>
+      <div><button class="btn btn-ghost" style="margin-top:18px" onclick="saveTemplate()">⭐ 保存</button></div>
+    </div>
+    <div id="tplList"></div>
+    <div class="hint">保存一套常用动作后，以后选好日期一键套用，不用每次重选。套用会按当天体重重新计算消耗。</div>
+  </details>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--red)"></span>热量收支（当日）</h3>
+    <div class="grid3" id="sportStats"></div>
+    <div class="hint" id="sportHint"></div>
+  </div>
+  <div class="card"><h3><span class="dot" style="background:var(--purple)"></span>历史记录</h3><div id="sportList"></div></div>
+</div>
+
+</div>
+<div id="nav">
+  <button class="on" onclick="go('home',this)"><span class="ic">🏠</span>今日</button>
+  <button onclick="go('body',this)"><span class="ic">⚖️</span>身体</button>
+  <button onclick="go('diet',this)"><span class="ic">🍱</span>饮食</button>
+  <button onclick="go('sport',this)"><span class="ic">💪</span>运动</button>
+</div>
+</div>
+
+<div class="mask" id="mask" onclick="if(event.target===this)closeProfile()">
+  <div class="sheet">
+    <h3><span>⚙️ 个人档案 · 目标自动生成</span><button class="x" onclick="closeProfile()">✕</button></h3>
+    <div class="frow">
+      <div><label class="fl">性别</label><select id="pGender"><option value="male">男</option><option value="female">女</option></select></div>
+      <div><label class="fl">年龄</label><input type="number" id="pAge"></div>
+      <div><label class="fl">身高 cm</label><input type="number" id="pHeight"></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">日常活动量</label><select id="pAct">
+        <option value="1.2">久坐（几乎不运动）</option>
+        <option value="1.375">轻度（每周1-3次）</option>
+        <option value="1.55">中度（每周3-5次）</option>
+        <option value="1.725">高强度（每周6-7次）</option>
+      </select></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">减脂强度</label><select id="pInt">
+        <option value="0.1">温和 -10%（易坚持）</option>
+        <option value="0.2">标准 -20%（推荐）</option>
+        <option value="0.25">进阶 -25%</option>
+      </select></div>
+      <div><label class="fl">目标体重 kg（可留空）</label><input type="number" step="0.1" id="pTW" placeholder="留空按BMI22"></div>
+    </div>
+    <div id="tPreview"></div>
+    <label class="switch"><input type="checkbox" id="pManual" onchange="toggleManual();previewTargets()">我要手动指定目标（不使用自动计算）</label>
+    <div id="manualBox" style="display:none">
+      <div class="frow">
+        <div><label class="fl">热量 kcal</label><input type="number" id="mKcal"></div>
+        <div><label class="fl">蛋白质 g</label><input type="number" id="mPro"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">饮水 ml</label><input type="number" id="mWater"></div>
+        <div><label class="fl">力量训练 次/周</label><input type="number" id="mStr"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="saveProfile()">保存档案</button>
+  </div>
+</div>
+
+<div class="mask" id="maskB" onclick="if(event.target===this)closeBackup()">
+  <div class="sheet">
+    <h3><span>💾 数据备份与恢复</span><button class="x" onclick="closeBackup()">✕</button></h3>
+    <button class="btn btn-primary" onclick="exportExcel()">📊 导出 Excel（5个工作表）</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="exportJSON()">💾 导出 JSON 完整存档</button>
+    <label class="btn btn-ghost" style="margin-top:8px;display:block;text-align:center">
+      📥 从 JSON 恢复数据<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
+    <div class="card" style="margin-top:12px;box-shadow:none;border:1px solid var(--line)">
+      <h3 style="margin-bottom:8px"><span class="dot" style="background:var(--brand)"></span>☁️ 云同步（GitHub 当云端）</h3>
+      <div class="frow">
+        <div style="flex:2"><label class="fl">GitHub Token</label><input type="password" id="syncToken" placeholder="ghp_..."></div>
+        <div style="flex:2"><label class="fl">仓库 owner/name</label><input id="syncRepo" placeholder="ljc-0918/fatloss-tracker"></div>
+      </div>
+      <div class="frow">
+        <div><button class="btn btn-ghost" onclick="saveSync()">💾 保存配置</button></div>
+        <div><button class="btn btn-primary" onclick="syncToCloud()">☁️ 同步到云端</button></div>
+        <div><button class="btn btn-ghost" onclick="syncFromCloud()">📥 从云端恢复</button></div>
+      </div>
+      <div class="hint">把数据备份成仓库里的 <b>data.json</b>，换手机/换浏览器不丢数据。Token 仅存在本机，用于读写你自己的仓库。建议用只含 repo 权限的细粒度 Token。</div>
+      <label class="switch" style="margin-top:8px"><input type="checkbox" id="reminderOn" onchange="toggleReminder()">到点提醒我喝水 / 补蛋白（应用打开时弹提醒）</label>
+    </div>
+    <button class="btn btn-warn" style="margin-top:8px" onclick="clearAll()">🗑 清空全部数据</button>
+    <div class="hint">
+      • <b>Excel</b>：离线归档 / 打印 / 自己做分析，含每日总表、饮食明细、身体数据、运动消耗、目标档案。<br>
+      • <b>JSON</b>：换手机或换浏览器时，导出后在新设备「从 JSON 恢复」即可完整迁移。<br>
+      • 数据保存在本机浏览器中，建议每周导出一次备份。<br>
+      • <b>添加到主屏</b>：iPhone 用 Safari 打开 → 分享 → 添加到主屏幕；安卓用 Chrome → 菜单 → 添加到主屏幕，即可像 APP 一样全屏使用。
+    </div>
+  </div>
+</div>
+<div class="mask" id="maskR" onclick="if(event.target===this)closeReport()">
+  <div class="sheet">
+    <h3><span>📊 阶段报告</span><button class="x" onclick="closeReport()">✕</button></h3>
+    <div class="seg" style="margin-bottom:12px">
+      <button class="on" id="rWeek" onclick="openReport('week')">本周</button>
+      <button id="rMonth" onclick="openReport('month')">本月</button>
+    </div>
+    <div id="reportBox"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<!--INJECT_SCRIPTS-->
+</body>
+</html>
