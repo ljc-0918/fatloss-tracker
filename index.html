@@ -84,9 +84,6 @@ textarea{resize:none;height:56px}
 .switch{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);padding:6px 0}
 .switch input{width:auto}
 </style>
-
-  <link rel="apple-touch-icon" sizes="512x512" href="icon.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
 </head>
 <body>
 <div id="phone">
@@ -158,6 +155,16 @@ textarea{resize:none;height:56px}
 </div>
 
 <div class="page" id="page-diet">
+  <div class="card">
+    <h3><span class="dot" style="background:var(--brand)"></span>🚀 一句话速记（语音 / 文字）</h3>
+    <textarea id="quickInput" placeholder="例如：中午沙县鸡腿饭；晚上半根玉米；加餐一杯无糖酸奶"></textarea>
+    <div class="frow" style="margin-top:8px">
+      <div><button class="btn btn-ghost" id="micBtn" onclick="startVoice()">🎤 语音</button></div>
+      <div style="flex:2"><button class="btn btn-primary" onclick="parseQuick()">⚡ 智能解析并添加</button></div>
+    </div>
+    <div class="hint">支持：日期(今天/昨天/前天/具体日期)、餐次(早/午/晚/加)、份数(两份/200克)。外食自动匹配餐厅菜品库，食材按名称带出营养。iPhone 语音可能不可用，直接打字即可。</div>
+    <div id="quickPreview"></div>
+  </div>
   <div class="card">
     <h3><span class="dot" style="background:var(--orange)"></span>录入饮食</h3>
     <div class="frow">
@@ -309,6 +316,8 @@ window.FOOD_DB = {
   "带鱼":[127,17.7,3.1,4.9,0],"金枪鱼(水浸罐头)":[99,21,0,1.2,0],
   "豆腐":[81,8.1,3.8,3.7,0.4],"内酯豆腐":[49,5,2.6,1.9,0.4],"豆腐干":[142,16.2,4.5,3.6,0.8],
   "无糖豆浆":[31,3,1.2,1.6,1.1],"鹰嘴豆(熟)":[164,8.9,27.4,2.6,7.6],"毛豆":[123,13.1,10.5,5,4],
+  "豆浆":[31,3,1.2,1.6,1.1],"油条":[386,6.9,44,21,1.4],"包子(猪肉)":[227,7,42,5,1.5],
+  "小米粥":[46,1.1,9.9,0.3,0.1],"煎饼":[330,9,46,13,2],
   "牛奶(全脂)":[65,3.3,4.9,3.6,0],"脱脂牛奶":[34,3.4,5,0.1,0],"无糖酸奶":[62,3.5,5,3.3,0],
   "希腊酸奶":[97,9,3.9,5,0],"奶酪":[328,25.7,3.5,23.5,0],"乳清蛋白粉":[400,80,8,6,1],
   "西兰花":[34,2.8,6.6,0.4,2.6],"菠菜":[23,2.9,3.6,0.4,2.2],"生菜":[15,1.4,2.9,0.2,1.3],
@@ -387,7 +396,31 @@ window.DISH_DB = {
   "【日料】三文鱼刺身 8片":[120,250,25,0,16,0],
   "【日料】寿司 8贯":[250,420,18,66,8,2],
   "【西餐】沙拉(油醋汁) 1份":[300,220,8,18,13,6],
-  "【西餐】意面(肉酱) 1份":[350,620,24,78,24,5]
+  "【西餐】意面(肉酱) 1份":[350,620,24,78,24,5],
+  "【沙县】鸡腿饭 1份":[600,800,35,85,30,3],
+  "【沙县】蒸饺 1份":[250,560,20,60,24,3],
+  "【沙县】拌面 1份":[350,560,18,75,18,4],
+  "【沙县】馄饨 1碗":[400,380,16,44,15,2],
+  "【沙县】蛋炒饭 1份":[400,620,18,78,22,2],
+  "【沙县】炖罐 1个":[300,260,28,8,14,0],
+  "【肯德基】香辣鸡腿堡 1个":[200,530,25,48,26,2],
+  "【肯德基】原味鸡 1块":[120,320,19,11,23,0],
+  "【肯德基】黄金鸡块 6块":[120,290,16,18,17,1],
+  "【肯德基】薯条(中) 1份":[110,320,4,38,16,3],
+  "【肯德基】可乐(中) 1杯":[500,210,0,53,0,0],
+  "【麦当劳】巨无霸 1个":[215,520,25,44,27,2],
+  "【麦当劳】麦辣鸡腿堡 1个":[210,490,23,45,24,2],
+  "【麦当劳】薯条(中) 1份":[117,340,4,42,17,4],
+  "【麦当劳】麦旋风 1个":[155,350,7,50,14,1],
+  "【麦当劳】玉米杯 1个":[100,100,3,19,2,2],
+  "【华莱士】全鸡腿堡 1个":[200,520,24,48,25,2],
+  "【黄焖鸡】黄焖鸡米饭 1份":[550,700,40,78,22,3],
+  "【老乡鸡/真功夫】中式套餐 1份":[500,750,32,90,28,4],
+  "【麻辣烫】杨国福/张亮 1人份":[600,650,30,50,35,8],
+  "【蜜雪冰城】柠檬水 1杯":[500,120,0,30,0,0],
+  "【蜜雪冰城】甜筒 1个":[70,150,2,24,5,0],
+  "【永和】豆浆油条 1套":[280,520,13,58,26,3],
+  "【永和】皮蛋瘦肉粥 1碗":[350,330,14,52,8,2]
 };
 
 </script>
@@ -567,6 +600,104 @@ function streak() {
 }
 /* 合并系统食物库 + 我的自定义食物 */
 function allFoods() { return Object.assign({}, window.FOOD_DB || {}, store.myFoods || {}); }
+
+/* ================= 智能速记解析引擎（纯前端规则） =================
+ * 支持：日期(今天/昨天/前天/具体日期)、餐次(早/午/晚/加)、份数/重量(两份/200克)
+ * 解析后归到正确餐次，外食匹配 DISH_DB，食材匹配 FOOD_DB，库外标 unknown
+ */
+function cnNum(s) { var m = { '零': 0, '一': 1, '两': 2, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '半': 0.5 }; return (s in m) ? m[s] : null; }
+var QTY_UNITS = ['份', '个', '碗', '片', '只', '杯', '包', '串', '贯', '根', '条', '块', '人份'];
+var WT_UNITS = ['克', 'g', 'kg', '毫升', 'ml'];
+var _dishMap = null;
+function dishSearchMap() {
+  if (_dishMap) return _dishMap;
+  var m = {};
+  Object.keys(window.DISH_DB || {}).forEach(function (k) {
+    var base = k.replace(/\d+(\.\d+)?\s*(份|碗|个|片|只|杯|包|串|贯|根|条|块|人份|小包)/g, '').trim();
+    var full = base.replace(/【(.*?)】/g, '$1').trim();   // 带前缀：沙县鸡腿饭
+    var bare = base.replace(/【.*?】/g, '').trim();        // 裸名：鸡腿饭 / 兰州拉面 / 番茄牛腩
+    if (full && !(full in m)) m[full] = k;
+    if (bare && !(bare in m)) m[bare] = k;
+  });
+  _dishMap = m; return m;
+}
+var _ents = null;
+function buildEntityList() {
+  if (_ents) return _ents;
+  var a = [];
+  var dm = dishSearchMap();
+  Object.keys(dm).forEach(function (k) { a.push({ type: 'dish', nm: k, per: window.DISH_DB[dm[k]] }); });
+  var db = allFoods();
+  Object.keys(db).forEach(function (k) { a.push({ type: 'food', nm: k, per: db[k] }); });
+  a.sort(function (x, y) { return y.nm.length - x.nm.length; });
+  _ents = a; return a;
+}
+var QNUM_RE = /(零|一|两|二|三|四|五|六|七|八|九|半|\d+(?:\.\d+)?)\s*(份|个|碗|片|只|杯|包|串|贯|根|条|块|人份|克|g|kg|毫升|ml)/;
+function grabQty(s) { var m = s.match(QNUM_RE); if (m) return { qty: parseFloat(m[1]) || cnNum(m[1]) || 1, unit: (m[2] || '').toLowerCase() }; return { qty: null, unit: '' }; }
+function trimQtyEnd(s) { return s.replace(/(零|一|两|二|三|四|五|六|七|八|九|半|\d+(?:\.\d+)?)\s*(份|个|碗|片|只|杯|包|串|贯|根|条|块|人份|克|g|kg|毫升|ml)?\s*$/, '').replace(/\s+$/, ''); }
+function trimQtyStart(s) { return s.replace(/^\s*(零|一|两|二|三|四|五|六|七|八|九|半|\d+(?:\.\d+)?)\s*(份|个|碗|片|只|杯|包|串|贯|根|条|块|人份|克|g|kg|毫升|ml)?/, ''); }
+function resolveQty(before, after) {
+  var bq = grabQty(before);
+  if (bq.qty !== null) return bq;
+  var at = after.replace(/^[\s，,、；;。.]+/, '');
+  var am = at.match(/^\s*(零|一|两|二|三|四|五|六|七|八|九|半|\d+(?:\.\d+)?)\s*(份|个|碗|片|只|杯|包|串|贯|根|条|块|人份|克|g|kg|毫升|ml)/);
+  if (am) {
+    var rest = at.slice(am[0].length).replace(/^[\s，,、；;。.]+/, '');
+    var ents = buildEntityList();
+    var isEntity = ents.some(function (e) { return rest.indexOf(e.nm) === 0; });
+    if (!isEntity) return { qty: parseFloat(am[1]) || cnNum(am[1]) || 1, unit: (am[2] || '').toLowerCase() };
+  }
+  return { qty: null, unit: '' };
+}
+function addEntityItem(best, qty, unit, meal, res) {
+  if (best.type === 'dish') {
+    var n = (qty !== null && unit && QTY_UNITS.indexOf(unit) >= 0) ? qty : 1;
+    var v = best.per;
+    res.items.push({ meal: meal, name: best.nm + (n !== 1 ? ' ×' + n : ''), grams: Math.round(v[0] * n), kcal: +(v[1] * n).toFixed(1), protein: +(v[2] * n).toFixed(1), carb: +(v[3] * n).toFixed(1), fat: +(v[4] * n).toFixed(1), fiber: +(v[5] * n).toFixed(1), est: true });
+  } else {
+    var grams, estFlag;
+    if (qty !== null && WT_UNITS.indexOf(unit) >= 0) { grams = (unit === 'kg') ? qty * 1000 : qty; estFlag = false; }
+    else { grams = 100; estFlag = true; }
+    var p = best.per, k = grams / 100;
+    res.items.push({ meal: meal, name: best.nm + (grams !== 100 ? (' ' + Math.round(grams) + 'g') : ''), grams: Math.round(grams), kcal: +(p[0] * k).toFixed(1), protein: +(p[1] * k).toFixed(1), carb: +(p[2] * k).toFixed(1), fat: +(p[3] * k).toFixed(1), fiber: +(p[4] * k).toFixed(1), est: estFlag });
+  }
+}
+function parseFoodsInText(text, meal, res) {
+  var clean = text.replace(/(今天|今日|昨天|前天|早|早餐|早饭|早晨|上午|午|午饭|午餐|中饭|中午|晚|晚饭|晚餐|夜里|晚上|加餐|下午茶|点心|零食|夜宵|了|吃|喝|的|和|跟|与|我|要|想|点|买|来|去|餐|上)/g, ' ').replace(/[，,、；;。.]/g, ' ').trim();
+  if (!clean) return;
+  var ents = buildEntityList(), working = clean, guard = 0;
+  while (working && working.trim() && guard++ < 60) {
+    var best = null, bi = 1e9;
+    for (var i = 0; i < ents.length; i++) { var idx = working.indexOf(ents[i].nm); if (idx >= 0 && idx < bi) { bi = idx; best = ents[i]; } }
+    if (!best) { var left = working.replace(/\s+/g, ' ').trim(); if (left) { (res.unknown = res.unknown || []).push(left); } break; }
+    var before = working.slice(0, bi), after = working.slice(bi + best.nm.length);
+    var q = resolveQty(before, after);
+    addEntityItem(best, q.qty, q.unit, meal, res);
+    working = trimQtyEnd(before) + trimQtyStart(after);
+  }
+}
+function parseQuickNote(raw) {
+  var text = String(raw || '').replace(/\s+/g, ' ').trim();
+  var res = { date: todayStr(), items: [] };
+  if (!text) return res;
+  var dm = text.match(/(20\d{2}[-\/]\d{1,2}[-\/]\d{1,2})/);
+  if (dm) { var p = dm[1].replace(/\//g, '-').split('-'); if (p[1].length < 2) p[1] = '0' + p[1]; if (p[2].length < 2) p[2] = '0' + p[2]; res.date = p.join('-'); text = text.replace(dm[0], ' '); }
+  else if (/前天/.test(text)) { var d = new Date(); d.setDate(d.getDate() - 2); res.date = dstr(d); text = text.replace(/前天/g, ' '); }
+  else if (/昨天/.test(text)) { var d2 = new Date(); d2.setDate(d2.getDate() - 1); res.date = dstr(d2); text = text.replace(/昨天/g, ' '); }
+  else if (/今天|今日/.test(text)) { text = text.replace(/今天|今日/g, ' '); }
+  var anchors = [
+    { re: /早|早餐|早饭|早晨|上午/, meal: '早餐' },
+    { re: /加餐|下午茶|点心|零食|夜宵/, meal: '加餐' },
+    { re: /午|午饭|午餐|中饭|中午/, meal: '午餐' },
+    { re: /晚|晚饭|晚餐|夜里|晚上/, meal: '晚餐' }
+  ];
+  var pos = [];
+  anchors.forEach(function (a) { var re = new RegExp(a.re.source, 'g'); var m; while ((m = re.exec(text)) !== null) { pos.push({ i: m.index, meal: a.meal }); } });
+  pos.sort(function (x, y) { return x.i - y.i; });
+  if (!pos.length) parseFoodsInText(text, '午餐', res);
+  else for (var i = 0; i < pos.length; i++) { var s = pos[i].i; var e = (i + 1 < pos.length) ? pos[i + 1].i : text.length; parseFoodsInText(text.slice(s, e), pos[i].meal, res); }
+  return res;
+}
 
 </script>
 <script>
@@ -1006,6 +1137,39 @@ function initForms() {
   loadSportForm();
 }
 function renderAll() { renderHome(); renderBody(); renderDiet(); renderSport(); }
+
+/* ================= 智能速记（语音 / 文字） ================= */
+function startVoice() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast('当前浏览器不支持语音，请直接打字');
+  try {
+    var r = new SR(); r.lang = 'zh-CN'; r.interimResults = false; r.maxAlternatives = 1;
+    r.onstart = function () { toast('🎤 请说话…'); };
+    r.onresult = function (e) { var t = e.results[0][0].transcript; $('quickInput').value = ($('quickInput').value ? $('quickInput').value + ' ' : '') + t; };
+    r.onerror = function (e) { toast('语音识别失败，请打字（' + (e.error || 'err') + '）'); };
+    r.start();
+  } catch (err) { toast('语音不可用，请直接打字'); }
+}
+function parseQuick() {
+  var t = $('quickInput').value;
+  if (!t.trim()) return toast('请输入或语音录入内容');
+  var r = parseQuickNote(t);
+  if (!r.items.length) return toast('没识别出食物，换个说法或手动录入~');
+  var d = dDate.value || todayStr();
+  r.items.forEach(function (it) {
+    (store.diet[d] = store.diet[d] || []).push({
+      meal: it.meal, name: it.name, grams: it.grams, kcal: it.kcal,
+      protein: it.protein, carb: it.carb, fat: it.fat, fiber: it.fiber, est: it.est
+    });
+  });
+  save();
+  var names = r.items.map(function (i) { return i.meal.slice(0, 1) + i.name; }).join('、');
+  var msg = '✅ 已添加 ' + r.items.length + ' 条：' + names;
+  if (r.unknown && r.unknown.length) msg += ' ｜ 未识别：' + r.unknown.join('、');
+  toast(msg);
+  $('quickInput').value = ''; $('quickPreview').innerHTML = '';
+  renderAll();
+}
 (function init() {
   $('dishSel').innerHTML = '<option value="">— 选择常见菜品 —</option>' +
     Object.keys(window.DISH_DB).map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('');
